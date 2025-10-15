@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Talk Chat con Selector de Voces</title>
+    <title>Food Talk Chat con Voz Aaron</title>
     <style>
         * {
             margin: 0;
@@ -41,40 +41,13 @@
             position: relative;
         }
 
-        .voice-selector {
-            margin: 15px 0;
-            text-align: left;
-        }
-
-        .voice-selector label {
-            display: block;
-            margin-bottom: 8px;
+        .voice-info {
+            margin: 10px 0;
             font-size: 0.9em;
             opacity: 0.9;
-        }
-
-        .voice-selector select {
-            width: 100%;
+            background: rgba(255,255,255,0.2);
             padding: 8px 12px;
             border-radius: 6px;
-            border: none;
-            background: white;
-            font-size: 0.9em;
-        }
-
-        .test-voice-btn {
-            margin-top: 8px;
-            padding: 6px 12px;
-            background: rgba(255,255,255,0.9);
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-            transition: background 0.3s;
-        }
-
-        .test-voice-btn:hover {
-            background: white;
         }
 
         .audio-controls {
@@ -312,12 +285,8 @@
             <h2>🍕 Food Talk 🍔</h2>
             <p>José M., Cristhel, Genesis, Juan S.</p>
             
-            <div class="voice-selector">
-                <label for="voiceSelect">Selecciona una voz:</label>
-                <select id="voiceSelect">
-                    <option value="">Cargando voces...</option>
-                </select>
-                <button class="test-voice-btn" id="testVoiceBtn">Probar voz seleccionada</button>
+            <div class="voice-info">
+                🔊 Usando voz: <strong>Aaron</strong> (inglés americano)
             </div>
             
             <div class="audio-controls">
@@ -344,7 +313,6 @@
         </div>
         
         <div class="chat-messages" id="chatMessages">
-            <!-- Los mensajes se mantienen igual que en la versión anterior -->
             <div class="message-time">Today 11:45 AM</div>
 
             <!-- José M. -->
@@ -498,91 +466,42 @@
         const stopBtn = document.getElementById('stopBtn');
         const progressBar = document.getElementById('progressBar');
         const timeDisplay = document.getElementById('timeDisplay');
-        const chatMessages = document.getElementById('chatMessages');
-        const voiceSelect = document.getElementById('voiceSelect');
-        const testVoiceBtn = document.getElementById('testVoiceBtn');
 
-        // Voces disponibles
-        let voices = [];
-        let selectedVoice = null;
+        // Buscar la voz Aaron
+        let aaronVoice = null;
 
-        function loadVoices() {
-            voices = synth.getVoices();
-            voiceSelect.innerHTML = '';
+        function loadAaronVoice() {
+            const voices = synth.getVoices();
             
-            if (voices.length === 0) {
-                voiceSelect.innerHTML = '<option value="">No se encontraron voces</option>';
-                return;
+            // Buscar Aaron en diferentes variantes
+            aaronVoice = voices.find(voice => 
+                voice.name.includes('Aaron') || 
+                voice.name.includes('aaron') ||
+                (voice.lang.startsWith('en') && voice.name.toLowerCase().includes('aaron'))
+            );
+
+            // Si no encontramos Aaron, buscar cualquier voz en inglés americano
+            if (!aaronVoice) {
+                aaronVoice = voices.find(voice => 
+                    voice.lang.startsWith('en-US') && voice.localService
+                );
             }
 
-            // Agrupar voces por idioma
-            const voicesByLanguage = {};
-            voices.forEach(voice => {
-                const lang = voice.lang;
-                if (!voicesByLanguage[lang]) {
-                    voicesByLanguage[lang] = [];
-                }
-                voicesByLanguage[lang].push(voice);
-            });
-
-            // Crear opciones organizadas por idioma
-            Object.keys(voicesByLanguage).sort().forEach(lang => {
-                const optgroup = document.createElement('optgroup');
-                optgroup.label = `Idioma: ${lang} (${voicesByLanguage[lang].length} voces)`;
-                
-                voicesByLanguage[lang].forEach(voice => {
-                    const option = document.createElement('option');
-                    option.value = voice.name;
-                    option.textContent = `${voice.name} (${voice.lang}) - ${voice.localService ? 'Local' : 'Remota'}`;
-                    optgroup.appendChild(option);
-                });
-                
-                voiceSelect.appendChild(optgroup);
-            });
-
-            // Seleccionar automáticamente una voz en inglés si está disponible
-            const englishVoices = voices.filter(voice => voice.lang.startsWith('en'));
-            if (englishVoices.length > 0) {
-                // Preferir voces locales
-                const localEnglishVoice = englishVoices.find(voice => voice.localService);
-                if (localEnglishVoice) {
-                    voiceSelect.value = localEnglishVoice.name;
-                    selectedVoice = localEnglishVoice;
-                } else {
-                    voiceSelect.value = englishVoices[0].name;
-                    selectedVoice = englishVoices[0];
-                }
+            // Si aún no encontramos, usar la primera voz en inglés disponible
+            if (!aaronVoice) {
+                aaronVoice = voices.find(voice => voice.lang.startsWith('en'));
             }
+
+            console.log('Voz seleccionada:', aaronVoice ? aaronVoice.name : 'No se encontró voz Aaron');
         }
 
         // Cargar voces cuando estén disponibles
         if (synth.onvoiceschanged !== undefined) {
-            synth.onvoiceschanged = loadVoices;
+            synth.onvoiceschanged = loadAaronVoice;
         }
 
         // También intentar cargar voces inmediatamente
-        setTimeout(loadVoices, 100);
-
-        // Event listener para cambiar de voz
-        voiceSelect.addEventListener('change', function() {
-            const voiceName = this.value;
-            selectedVoice = voices.find(voice => voice.name === voiceName) || null;
-        });
-
-        // Event listener para probar la voz
-        testVoiceBtn.addEventListener('click', function() {
-            if (selectedVoice) {
-                const testUtterance = new SpeechSynthesisUtterance(
-                    "Hello! This is a test of the selected voice. How does it sound?"
-                );
-                testUtterance.voice = selectedVoice;
-                testUtterance.rate = 0.9;
-                testUtterance.pitch = 1;
-                synth.speak(testUtterance);
-            } else {
-                alert('Please select a voice first');
-            }
-        });
+        setTimeout(loadAaronVoice, 100);
 
         // Función para formatear el tiempo en MM:SS
         function formatTime(seconds) {
@@ -632,9 +551,15 @@
             
             currentUtterance = new SpeechSynthesisUtterance(text);
             
-            // Usar la voz seleccionada
-            if (selectedVoice) {
-                currentUtterance.voice = selectedVoice;
+            // Usar la voz Aaron si está disponible
+            if (aaronVoice) {
+                currentUtterance.voice = aaronVoice;
+            } else {
+                // Si no se encontró Aaron, recargar voces y intentar nuevamente
+                loadAaronVoice();
+                if (aaronVoice) {
+                    currentUtterance.voice = aaronVoice;
+                }
             }
             
             currentUtterance.rate = 0.9;
@@ -668,7 +593,7 @@
             synth.speak(currentUtterance);
         }
 
-        // Funciones de control de reproducción (igual que antes)
+        // Funciones de control de reproducción
         function startPlayback() {
             if (isPlaying) return;
             
