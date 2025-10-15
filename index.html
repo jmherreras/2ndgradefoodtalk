@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Talk Chat con Voz Aaron</title>
+    <title>Food Talk Chat con Voz Derek</title>
     <style>
         * {
             margin: 0;
@@ -286,7 +286,7 @@
             <p>José M., Cristhel, Genesis, Juan S.</p>
             
             <div class="voice-info">
-                🔊 Usando voz: <strong>Aaron</strong> (inglés americano)
+                🔊 Usando voz: <strong>Derek</strong> (inglés americano)
             </div>
             
             <div class="audio-controls">
@@ -467,41 +467,41 @@
         const progressBar = document.getElementById('progressBar');
         const timeDisplay = document.getElementById('timeDisplay');
 
-        // Buscar la voz Aaron
-        let aaronVoice = null;
+        // Buscar la voz Derek
+        let DerekVoice = null;
 
-        function loadAaronVoice() {
+        function loadDerekVoice() {
             const voices = synth.getVoices();
             
-            // Buscar Aaron en diferentes variantes
-            aaronVoice = voices.find(voice => 
-                voice.name.includes('Aaron') || 
-                voice.name.includes('aaron') ||
-                (voice.lang.startsWith('en') && voice.name.toLowerCase().includes('aaron'))
+            // Buscar Derek en diferentes variantes
+            DerekVoice = voices.find(voice => 
+                voice.name.includes('Derek') || 
+                voice.name.includes('Derek') ||
+                (voice.lang.startsWith('en') && voice.name.toLowerCase().includes('Derek'))
             );
 
-            // Si no encontramos Aaron, buscar cualquier voz en inglés americano
-            if (!aaronVoice) {
-                aaronVoice = voices.find(voice => 
+            // Si no encontramos Derek, buscar cualquier voz en inglés americano
+            if (!DerekVoice) {
+                DerekVoice = voices.find(voice => 
                     voice.lang.startsWith('en-US') && voice.localService
                 );
             }
 
             // Si aún no encontramos, usar la primera voz en inglés disponible
-            if (!aaronVoice) {
-                aaronVoice = voices.find(voice => voice.lang.startsWith('en'));
+            if (!DerekVoice) {
+                DerekVoice = voices.find(voice => voice.lang.startsWith('en'));
             }
 
-            console.log('Voz seleccionada:', aaronVoice ? aaronVoice.name : 'No se encontró voz Aaron');
+            console.log('Voz seleccionada:', DerekVoice ? DerekVoice.name : 'No se encontró voz Derek');
         }
 
         // Cargar voces cuando estén disponibles
         if (synth.onvoiceschanged !== undefined) {
-            synth.onvoiceschanged = loadAaronVoice;
+            synth.onvoiceschanged = loadDerekVoice;
         }
 
         // También intentar cargar voces inmediatamente
-        setTimeout(loadAaronVoice, 100);
+        setTimeout(loadDerekVoice, 100);
 
         // Función para formatear el tiempo en MM:SS
         function formatTime(seconds) {
@@ -551,14 +551,14 @@
             
             currentUtterance = new SpeechSynthesisUtterance(text);
             
-            // Usar la voz Aaron si está disponible
-            if (aaronVoice) {
-                currentUtterance.voice = aaronVoice;
+            // Usar la voz Derek si está disponible
+            if (DerekVoice) {
+                currentUtterance.voice = DerekVoice;
             } else {
-                // Si no se encontró Aaron, recargar voces y intentar nuevamente
-                loadAaronVoice();
-                if (aaronVoice) {
-                    currentUtterance.voice = aaronVoice;
+                // Si no se encontró Derek, recargar voces y intentar nuevamente
+                loadDerekVoice();
+                if (DerekVoice) {
+                    currentUtterance.voice = DerekVoice;
                 }
             }
             
