@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Talk Chat con Audio</title>
+    <title>Food Talk Chat con Selector de Voces</title>
     <style>
         * {
             margin: 0;
@@ -41,14 +41,40 @@
             position: relative;
         }
 
-        .chat-header h2 {
-            margin-bottom: 5px;
-            font-size: 1.3em;
+        .voice-selector {
+            margin: 15px 0;
+            text-align: left;
         }
 
-        .chat-header p {
-            opacity: 0.9;
+        .voice-selector label {
+            display: block;
+            margin-bottom: 8px;
             font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .voice-selector select {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            background: white;
+            font-size: 0.9em;
+        }
+
+        .test-voice-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background 0.3s;
+        }
+
+        .test-voice-btn:hover {
+            background: white;
         }
 
         .audio-controls {
@@ -286,6 +312,14 @@
             <h2>🍕 Food Talk 🍔</h2>
             <p>José M., Cristhel, Genesis, Juan S.</p>
             
+            <div class="voice-selector">
+                <label for="voiceSelect">Selecciona una voz:</label>
+                <select id="voiceSelect">
+                    <option value="">Cargando voces...</option>
+                </select>
+                <button class="test-voice-btn" id="testVoiceBtn">Probar voz seleccionada</button>
+            </div>
+            
             <div class="audio-controls">
                 <button class="audio-btn play" id="playBtn" title="Reproducir">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -310,6 +344,7 @@
         </div>
         
         <div class="chat-messages" id="chatMessages">
+            <!-- Los mensajes se mantienen igual que en la versión anterior -->
             <div class="message-time">Today 11:45 AM</div>
 
             <!-- José M. -->
@@ -464,21 +499,90 @@
         const progressBar = document.getElementById('progressBar');
         const timeDisplay = document.getElementById('timeDisplay');
         const chatMessages = document.getElementById('chatMessages');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const testVoiceBtn = document.getElementById('testVoiceBtn');
 
-        // Voces disponibles (seleccionaremos una adecuada)
+        // Voces disponibles
         let voices = [];
-        
+        let selectedVoice = null;
+
         function loadVoices() {
             voices = synth.getVoices();
-            // Podríamos seleccionar una voz específica aquí si lo deseamos
+            voiceSelect.innerHTML = '';
+            
+            if (voices.length === 0) {
+                voiceSelect.innerHTML = '<option value="">No se encontraron voces</option>';
+                return;
+            }
+
+            // Agrupar voces por idioma
+            const voicesByLanguage = {};
+            voices.forEach(voice => {
+                const lang = voice.lang;
+                if (!voicesByLanguage[lang]) {
+                    voicesByLanguage[lang] = [];
+                }
+                voicesByLanguage[lang].push(voice);
+            });
+
+            // Crear opciones organizadas por idioma
+            Object.keys(voicesByLanguage).sort().forEach(lang => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = `Idioma: ${lang} (${voicesByLanguage[lang].length} voces)`;
+                
+                voicesByLanguage[lang].forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.name;
+                    option.textContent = `${voice.name} (${voice.lang}) - ${voice.localService ? 'Local' : 'Remota'}`;
+                    optgroup.appendChild(option);
+                });
+                
+                voiceSelect.appendChild(optgroup);
+            });
+
+            // Seleccionar automáticamente una voz en inglés si está disponible
+            const englishVoices = voices.filter(voice => voice.lang.startsWith('en'));
+            if (englishVoices.length > 0) {
+                // Preferir voces locales
+                const localEnglishVoice = englishVoices.find(voice => voice.localService);
+                if (localEnglishVoice) {
+                    voiceSelect.value = localEnglishVoice.name;
+                    selectedVoice = localEnglishVoice;
+                } else {
+                    voiceSelect.value = englishVoices[0].name;
+                    selectedVoice = englishVoices[0];
+                }
+            }
         }
-        
+
+        // Cargar voces cuando estén disponibles
         if (synth.onvoiceschanged !== undefined) {
             synth.onvoiceschanged = loadVoices;
         }
-        
-        // Inicializar voces
-        loadVoices();
+
+        // También intentar cargar voces inmediatamente
+        setTimeout(loadVoices, 100);
+
+        // Event listener para cambiar de voz
+        voiceSelect.addEventListener('change', function() {
+            const voiceName = this.value;
+            selectedVoice = voices.find(voice => voice.name === voiceName) || null;
+        });
+
+        // Event listener para probar la voz
+        testVoiceBtn.addEventListener('click', function() {
+            if (selectedVoice) {
+                const testUtterance = new SpeechSynthesisUtterance(
+                    "Hello! This is a test of the selected voice. How does it sound?"
+                );
+                testUtterance.voice = selectedVoice;
+                testUtterance.rate = 0.9;
+                testUtterance.pitch = 1;
+                synth.speak(testUtterance);
+            } else {
+                alert('Please select a voice first');
+            }
+        });
 
         // Función para formatear el tiempo en MM:SS
         function formatTime(seconds) {
@@ -511,18 +615,12 @@
         // Función para hablar un mensaje específico
         function speakMessage(index) {
             if (index >= messages.length) {
-                // Hemos llegado al final de la conversación
                 stopPlayback();
                 return;
             }
             
-            // Remover la clase active de todos los mensajes
             messages.forEach(msg => msg.classList.remove('active'));
-            
-            // Agregar la clase active al mensaje actual
             messages[index].classList.add('active');
-            
-            // Desplazar el mensaje actual a la vista
             messages[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
             
             const message = messages[index];
@@ -534,20 +632,15 @@
             
             currentUtterance = new SpeechSynthesisUtterance(text);
             
-            // Seleccionar una voz en inglés si está disponible
-            const englishVoice = voices.find(voice => 
-                voice.lang.startsWith('en') && voice.localService
-            );
-            
-            if (englishVoice) {
-                currentUtterance.voice = englishVoice;
+            // Usar la voz seleccionada
+            if (selectedVoice) {
+                currentUtterance.voice = selectedVoice;
             }
             
-            currentUtterance.rate = 0.9; // Velocidad ligeramente reducida para mejor comprensión
+            currentUtterance.rate = 0.9;
             currentUtterance.pitch = 1;
             currentUtterance.volume = 1;
             
-            // Estimar duración (aproximadamente 1 segundo por 10 caracteres)
             estimatedDuration = text.length / 10;
             startTime = Date.now();
             
@@ -561,7 +654,6 @@
             currentUtterance.onend = function() {
                 currentMessageIndex++;
                 if (isPlaying && currentMessageIndex < messages.length) {
-                    // Esperar un poco antes del siguiente mensaje
                     setTimeout(() => speakMessage(currentMessageIndex), 800);
                 } else {
                     stopPlayback();
@@ -576,19 +668,18 @@
             synth.speak(currentUtterance);
         }
 
-        // Función para iniciar la reproducción
+        // Funciones de control de reproducción (igual que antes)
         function startPlayback() {
             if (isPlaying) return;
             
             if (currentMessageIndex >= messages.length) {
-                currentMessageIndex = 0; // Reiniciar si llegamos al final
+                currentMessageIndex = 0;
             }
             
             isPlaying = true;
             speakMessage(currentMessageIndex);
         }
 
-        // Función para pausar la reproducción
         function pausePlayback() {
             if (!isPlaying) return;
             
@@ -598,7 +689,6 @@
             pauseBtn.style.display = 'none';
         }
 
-        // Función para reanudar la reproducción
         function resumePlayback() {
             if (isPlaying) return;
             
@@ -609,7 +699,6 @@
             updateProgress();
         }
 
-        // Función para detener la reproducción
         function stopPlayback() {
             isPlaying = false;
             synth.cancel();
@@ -618,17 +707,14 @@
             pauseBtn.style.display = 'none';
             progressBar.style.width = '0%';
             timeDisplay.textContent = '00:00 / 00:00';
-            
-            // Remover la clase active de todos los mensajes
             messages.forEach(msg => msg.classList.remove('active'));
         }
 
-        // Event listeners para los botones
+        // Event listeners
         playBtn.addEventListener('click', startPlayback);
         pauseBtn.addEventListener('click', pausePlayback);
         stopBtn.addEventListener('click', stopPlayback);
 
-        // Permitir hacer clic en los mensajes para reproducir desde ese punto
         messages.forEach((message, index) => {
             message.addEventListener('click', () => {
                 stopPlayback();
@@ -636,7 +722,6 @@
                 startPlayback();
             });
             
-            // Efecto visual al pasar el cursor
             message.addEventListener('mouseenter', () => {
                 if (!message.classList.contains('active')) {
                     message.style.opacity = '0.9';
