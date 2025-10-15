@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Talk Chat</title>
+    <title>Food Talk Chat con Audio</title>
     <style>
         * {
             margin: 0;
@@ -23,11 +23,14 @@
 
         .chat-container {
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             background: white;
             border-radius: 12px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.1);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
         }
 
         .chat-header {
@@ -35,6 +38,7 @@
             color: white;
             padding: 20px;
             text-align: center;
+            position: relative;
         }
 
         .chat-header h2 {
@@ -47,10 +51,74 @@
             font-size: 0.9em;
         }
 
+        .audio-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+        }
+
+        .audio-btn {
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .audio-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .audio-btn.play {
+            color: #25D366;
+        }
+
+        .audio-btn.pause {
+            color: #FF9800;
+        }
+
+        .audio-btn.stop {
+            color: #f44336;
+        }
+
+        .progress-container {
+            flex-grow: 1;
+            background: rgba(255, 255, 255, 0.3);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .time-display {
+            color: white;
+            font-size: 0.9em;
+            min-width: 100px;
+            text-align: center;
+        }
+
         .chat-messages {
             padding: 20px;
             background-color: #e5ddd5;
-            min-height: 500px;
+            flex-grow: 1;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -67,6 +135,13 @@
             max-width: 85%;
             display: flex;
             flex-direction: column;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .message.active {
+            opacity: 1;
+            transform: scale(1.02);
         }
 
         .message.received {
@@ -81,6 +156,9 @@
             font-size: 0.8em;
             margin-bottom: 4px;
             padding: 0 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .message.received .message-sender {
@@ -99,6 +177,7 @@
             font-size: 0.95em;
             line-height: 1.4;
             word-wrap: break-word;
+            position: relative;
         }
 
         .message.received .message-bubble {
@@ -111,6 +190,22 @@
             background: #dcf8c6;
             border-top-right-radius: 0;
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .speaker-icon {
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .message.active .speaker-icon {
+            display: inline;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
         }
 
         /* Colores específicos para cada persona */
@@ -127,6 +222,7 @@
             
             .chat-container {
                 border-radius: 8px;
+                height: 95vh;
             }
             
             .chat-messages {
@@ -141,6 +237,16 @@
             .message-bubble {
                 padding: 10px 14px;
                 font-size: 0.9em;
+            }
+
+            .audio-controls {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .audio-btn {
+                width: 45px;
+                height: 45px;
             }
         }
 
@@ -166,6 +272,11 @@
                 padding: 8px 12px;
                 font-size: 0.85em;
             }
+
+            .audio-btn {
+                width: 40px;
+                height: 40px;
+            }
         }
     </style>
 </head>
@@ -174,14 +285,36 @@
         <div class="chat-header">
             <h2>🍕 Food Talk 🍔</h2>
             <p>José M., Cristhel, Genesis, Juan S.</p>
+            
+            <div class="audio-controls">
+                <button class="audio-btn play" id="playBtn" title="Reproducir">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </button>
+                <button class="audio-btn pause" id="pauseBtn" title="Pausar" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                </button>
+                <button class="audio-btn stop" id="stopBtn" title="Detener">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 6h12v12H6z"/>
+                    </svg>
+                </button>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+            </div>
         </div>
         
-        <div class="chat-messages">
+        <div class="chat-messages" id="chatMessages">
             <div class="message-time">Today 11:45 AM</div>
 
             <!-- José M. -->
-            <div class="message received">
-                <div class="message-sender josé"><strong>👨‍💼 José M.</strong></div>
+            <div class="message received" data-audio-text="Good morning, teacher and classmates. Today we will talk about food. Have you already had lunch?">
+                <div class="message-sender josé"><strong>👨‍💼 José M.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     Good morning, teacher and classmates. Today we will talk about food.<br>
                     Have you already had lunch?
@@ -189,133 +322,333 @@
             </div>
 
             <!-- Cristhel -->
-            <div class="message sent">
-                <div class="message-sender cristhel"><strong>👩‍🎤 Cristhel</strong></div>
+            <div class="message sent" data-audio-text="Hello, José! I had a salad.">
+                <div class="message-sender cristhel"><strong>👩‍🎤 Cristhel</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     Hello, José! I had a salad.
                 </div>
             </div>
 
             <!-- Genesis -->
-            <div class="message sent">
-                <div class="message-sender genesis"><strong>👩‍💻 Genesis</strong></div>
+            <div class="message sent" data-audio-text="How delicious! I had pasta with cheese.">
+                <div class="message-sender genesis"><strong>👩‍💻 Genesis</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     How delicious! I had pasta with cheese.
                 </div>
             </div>
 
             <!-- Juan S. -->
-            <div class="message received">
-                <div class="message-sender juan"><strong>👨‍🔧 Juan S.</strong></div>
+            <div class="message received" data-audio-text="I haven't eaten yet.">
+                <div class="message-sender juan"><strong>👨‍🔧 Juan S.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     I haven't eaten yet.
                 </div>
             </div>
 
             <!-- José M. -->
-            <div class="message received">
-                <div class="message-sender josé"><strong>👨‍💼 José M.</strong></div>
+            <div class="message received" data-audio-text="You should eat, food is important.">
+                <div class="message-sender josé"><strong>👨‍💼 José M.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     You should eat, food is important.
                 </div>
             </div>
 
             <!-- Cristhel -->
-            <div class="message sent">
-                <div class="message-sender cristhel"><strong>👩‍🎤 Cristhel</strong></div>
+            <div class="message sent" data-audio-text="I love hamburgers.">
+                <div class="message-sender cristhel"><strong>👩‍🎤 Cristhel</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     I love hamburgers.
                 </div>
             </div>
 
             <!-- Genesis -->
-            <div class="message sent">
-                <div class="message-sender genesis"><strong>👩‍💻 Genesis</strong></div>
+            <div class="message sent" data-audio-text="My favorite is cheese pizza.">
+                <div class="message-sender genesis"><strong>👩‍💻 Genesis</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     My favorite is cheese pizza.
                 </div>
             </div>
 
             <!-- Juan S. -->
-            <div class="message received">
-                <div class="message-sender juan"><strong>👨‍🔧 Juan S.</strong></div>
+            <div class="message received" data-audio-text="I like meat.">
+                <div class="message-sender juan"><strong>👨‍🔧 Juan S.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     I like meat.
                 </div>
             </div>
 
             <!-- José M. -->
-            <div class="message received">
-                <div class="message-sender josé"><strong>👨‍💼 José M.</strong></div>
+            <div class="message received" data-audio-text="Excellent choices.">
+                <div class="message-sender josé"><strong>👨‍💼 José M.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     Excellent choices.
                 </div>
             </div>
 
             <!-- Cristhel -->
-            <div class="message sent">
-                <div class="message-sender cristhel"><strong>👩‍🎤 Cristhel</strong></div>
+            <div class="message sent" data-audio-text="Pizza is my favorite.">
+                <div class="message-sender cristhel"><strong>👩‍🎤 Cristhel</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     Pizza is my favorite.
                 </div>
             </div>
 
             <!-- Genesis -->
-            <div class="message sent">
-                <div class="message-sender genesis"><strong>👩‍💻 Genesis</strong></div>
+            <div class="message sent" data-audio-text="And what do you like to drink with your food?">
+                <div class="message-sender genesis"><strong>👩‍💻 Genesis</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     And what do you like to drink with your food?
                 </div>
             </div>
 
             <!-- Juan S. -->
-            <div class="message received">
-                <div class="message-sender juan"><strong>👨‍🔧 Juan S.</strong></div>
+            <div class="message received" data-audio-text="I drink orange juice.">
+                <div class="message-sender juan"><strong>👨‍🔧 Juan S.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     I drink orange juice.
                 </div>
             </div>
 
             <!-- José M. -->
-            <div class="message received">
-                <div class="message-sender josé"><strong>👨‍💼 José M.</strong></div>
+            <div class="message received" data-audio-text="I love lemonade.">
+                <div class="message-sender josé"><strong>👨‍💼 José M.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     I love lemonade.
                 </div>
             </div>
 
             <!-- Cristhel -->
-            <div class="message sent">
-                <div class="message-sender cristhel"><strong>👩‍🎤 Cristhel</strong></div>
+            <div class="message sent" data-audio-text="I love pineapple juice.">
+                <div class="message-sender cristhel"><strong>👩‍🎤 Cristhel</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     I love pineapple juice.
                 </div>
             </div>
 
             <!-- Genesis -->
-            <div class="message sent">
-                <div class="message-sender genesis"><strong>👩‍💻 Genesis</strong></div>
+            <div class="message sent" data-audio-text="I like apple juice!">
+                <div class="message-sender genesis"><strong>👩‍💻 Genesis</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     I like apple juice!
                 </div>
             </div>
 
             <!-- Juan S. -->
-            <div class="message received">
-                <div class="message-sender juan"><strong>👨‍🔧 Juan S.</strong></div>
+            <div class="message received" data-audio-text="Let's enjoy our meal!">
+                <div class="message-sender juan"><strong>👨‍🔧 Juan S.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     Let's enjoy our meal!
                 </div>
             </div>
 
             <!-- José M. -->
-            <div class="message received">
-                <div class="message-sender josé"><strong>👨‍💼 José M.</strong></div>
+            <div class="message received" data-audio-text="Thank you everyone for sharing!">
+                <div class="message-sender josé"><strong>👨‍💼 José M.</strong> <span class="speaker-icon">🔊</span></div>
                 <div class="message-bubble">
                     Thank you everyone for sharing!
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        // Configuración de texto a voz
+        const synth = window.speechSynthesis;
+        let currentUtterance = null;
+        let isPlaying = false;
+        let currentMessageIndex = 0;
+        const messages = document.querySelectorAll('.message[data-audio-text]');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const progressBar = document.getElementById('progressBar');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const chatMessages = document.getElementById('chatMessages');
+
+        // Voces disponibles (seleccionaremos una adecuada)
+        let voices = [];
+        
+        function loadVoices() {
+            voices = synth.getVoices();
+            // Podríamos seleccionar una voz específica aquí si lo deseamos
+        }
+        
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = loadVoices;
+        }
+        
+        // Inicializar voces
+        loadVoices();
+
+        // Función para formatear el tiempo en MM:SS
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Función para actualizar la barra de progreso y el tiempo
+        function updateProgress() {
+            if (!currentUtterance) return;
+            
+            const elapsed = (Date.now() - startTime) / 1000;
+            const total = estimatedDuration;
+            const progress = Math.min((elapsed / total) * 100, 100);
+            
+            progressBar.style.width = `${progress}%`;
+            
+            const currentTime = Math.min(elapsed, total);
+            timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(total)}`;
+            
+            if (progress < 100) {
+                requestAnimationFrame(updateProgress);
+            }
+        }
+
+        let startTime = 0;
+        let estimatedDuration = 0;
+
+        // Función para hablar un mensaje específico
+        function speakMessage(index) {
+            if (index >= messages.length) {
+                // Hemos llegado al final de la conversación
+                stopPlayback();
+                return;
+            }
+            
+            // Remover la clase active de todos los mensajes
+            messages.forEach(msg => msg.classList.remove('active'));
+            
+            // Agregar la clase active al mensaje actual
+            messages[index].classList.add('active');
+            
+            // Desplazar el mensaje actual a la vista
+            messages[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            const message = messages[index];
+            const text = message.getAttribute('data-audio-text');
+            
+            if (currentUtterance) {
+                synth.cancel();
+            }
+            
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            
+            // Seleccionar una voz en inglés si está disponible
+            const englishVoice = voices.find(voice => 
+                voice.lang.startsWith('en') && voice.localService
+            );
+            
+            if (englishVoice) {
+                currentUtterance.voice = englishVoice;
+            }
+            
+            currentUtterance.rate = 0.9; // Velocidad ligeramente reducida para mejor comprensión
+            currentUtterance.pitch = 1;
+            currentUtterance.volume = 1;
+            
+            // Estimar duración (aproximadamente 1 segundo por 10 caracteres)
+            estimatedDuration = text.length / 10;
+            startTime = Date.now();
+            
+            currentUtterance.onstart = function() {
+                isPlaying = true;
+                playBtn.style.display = 'none';
+                pauseBtn.style.display = 'flex';
+                updateProgress();
+            };
+            
+            currentUtterance.onend = function() {
+                currentMessageIndex++;
+                if (isPlaying && currentMessageIndex < messages.length) {
+                    // Esperar un poco antes del siguiente mensaje
+                    setTimeout(() => speakMessage(currentMessageIndex), 800);
+                } else {
+                    stopPlayback();
+                }
+            };
+            
+            currentUtterance.onerror = function() {
+                console.error('Error en la síntesis de voz');
+                stopPlayback();
+            };
+            
+            synth.speak(currentUtterance);
+        }
+
+        // Función para iniciar la reproducción
+        function startPlayback() {
+            if (isPlaying) return;
+            
+            if (currentMessageIndex >= messages.length) {
+                currentMessageIndex = 0; // Reiniciar si llegamos al final
+            }
+            
+            isPlaying = true;
+            speakMessage(currentMessageIndex);
+        }
+
+        // Función para pausar la reproducción
+        function pausePlayback() {
+            if (!isPlaying) return;
+            
+            isPlaying = false;
+            synth.pause();
+            playBtn.style.display = 'flex';
+            pauseBtn.style.display = 'none';
+        }
+
+        // Función para reanudar la reproducción
+        function resumePlayback() {
+            if (isPlaying) return;
+            
+            isPlaying = true;
+            synth.resume();
+            playBtn.style.display = 'none';
+            pauseBtn.style.display = 'flex';
+            updateProgress();
+        }
+
+        // Función para detener la reproducción
+        function stopPlayback() {
+            isPlaying = false;
+            synth.cancel();
+            currentMessageIndex = 0;
+            playBtn.style.display = 'flex';
+            pauseBtn.style.display = 'none';
+            progressBar.style.width = '0%';
+            timeDisplay.textContent = '00:00 / 00:00';
+            
+            // Remover la clase active de todos los mensajes
+            messages.forEach(msg => msg.classList.remove('active'));
+        }
+
+        // Event listeners para los botones
+        playBtn.addEventListener('click', startPlayback);
+        pauseBtn.addEventListener('click', pausePlayback);
+        stopBtn.addEventListener('click', stopPlayback);
+
+        // Permitir hacer clic en los mensajes para reproducir desde ese punto
+        messages.forEach((message, index) => {
+            message.addEventListener('click', () => {
+                stopPlayback();
+                currentMessageIndex = index;
+                startPlayback();
+            });
+            
+            // Efecto visual al pasar el cursor
+            message.addEventListener('mouseenter', () => {
+                if (!message.classList.contains('active')) {
+                    message.style.opacity = '0.9';
+                }
+            });
+            
+            message.addEventListener('mouseleave', () => {
+                if (!message.classList.contains('active')) {
+                    message.style.opacity = '0.7';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
